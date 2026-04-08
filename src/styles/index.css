@@ -1,0 +1,554 @@
+/* ============================================================
+   Leve — minimal, bold, calm.
+   White / beige / black / red OR yellow (never both) with a tinge of orange.
+   All type: Helvetica Bold, black.
+   ============================================================ */
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --grid: #ece7dc;
+  --rule: #c7bfae;          /* the thin line around the board */
+  --ink: #000000;
+  --ink-soft: #000000;
+  --accent: #e5352b;
+  --accent-soft: #ef5f56;
+  --accent-ink: #ffffff;     /* text color that sits on top of --accent */
+  --glow: #ffe0dc;
+
+  /* Logo is always the same yellowish-orange, regardless of the palette. */
+  --logo-mark: #f5a623;
+
+  --font: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+
+  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  font-weight: 700;
+  background: none;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Smooth palette transitions */
+html, body, .app, .cell__inner, .piece__cell-inner, .board, .logo__square,
+.fairy__square, .gameover, .gameover__btn {
+  transition:
+    background-color 1.4s var(--ease-soft),
+    border-color 1.4s var(--ease-soft),
+    color 1.4s var(--ease-soft);
+}
+
+/* ============================================================
+   App layout
+   ============================================================ */
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+}
+
+.app__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 20px 16px 28px 16px;
+}
+
+/* The stage is no wider than the board. Everything — brandline, message,
+   board, tray — stacks inside it at the same width. */
+.stage {
+  width: var(--board-size);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
+/* Logo + score on one row, right above the affirmation rectangle */
+.brandline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  animation: softFadeIn 1.2s var(--ease-soft) both;
+}
+
+/* Very subtle "flow state" warmth */
+.app--flow::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 60%);
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  transition: opacity 1.2s var(--ease-soft);
+}
+
+/* ============================================================
+   Logo — one square next to all-caps LEVE
+   ============================================================ */
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1;
+}
+
+.logo__square {
+  display: block;
+  width: 28px;
+  height: 28px;
+  background: var(--logo-mark);
+}
+
+.logo__text {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+/* ============================================================
+   Score (corner UI)
+   ============================================================ */
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  font-weight: 700;
+}
+.score__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink);
+}
+.score__label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+}
+.score__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ink);
+  min-width: 30px;
+  text-align: right;
+}
+
+.mute-btn {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  padding: 0;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.mute-btn:hover { opacity: 1; }
+
+.mute-btn--corner {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 20;
+}
+
+/* ============================================================
+   Messages above the board: a wide rectangle that fades in/out
+   ============================================================ */
+
+.message-slot {
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  /* Same color as the blocks */
+  background: var(--accent);
+  border: none;
+  /* Fades in/out in sync with the compliment. */
+  opacity: 0;
+  transition:
+    opacity 0.7s var(--ease-soft),
+    background-color 1.4s var(--ease-soft);
+}
+.message-slot--on { opacity: 1; }
+
+.compliment__text {
+  display: inline-block;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  color: var(--accent-ink);
+}
+
+@keyframes softFadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ============================================================
+   Board
+   ============================================================ */
+
+.board-wrap {
+  position: relative;
+  padding: 0;
+  background: transparent;
+  /* Float the board above the background. Soft, warm drop-shadow. */
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.04))
+          drop-shadow(0 18px 28px rgba(0, 0, 0, 0.08))
+          drop-shadow(0 36px 64px rgba(0, 0, 0, 0.06));
+  animation: boardFadeIn 1.6s var(--ease-soft) both;
+}
+
+@keyframes boardFadeIn {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.board {
+  position: relative;
+  display: block;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+  background-position: -0.5px -0.5px;
+  border: 1px solid var(--rule);
+}
+
+.cell {
+  position: absolute;
+}
+
+.cell__inner {
+  position: absolute;
+  inset: 6%;
+  background: var(--accent);
+  animation: cellPlace 0.6s var(--ease-soft) both;
+}
+
+/* Softened placement: pure fade, no scale bounce. */
+@keyframes cellPlace {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Ghost preview */
+.cell--ghost::after,
+.cell--ghost-invalid::after {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  pointer-events: none;
+}
+.cell--ghost::after {
+  background: var(--accent);
+  opacity: 0.32;
+}
+.cell--ghost-invalid::after {
+  background: var(--ink);
+  opacity: 0.1;
+}
+
+/* Clearing animation — soft fade with a whisper of warmth. */
+.cell--clearing .cell__inner {
+  animation: cellClear 0.6s var(--ease-soft) forwards;
+}
+@keyframes cellClear {
+  0%   { opacity: 1; filter: brightness(1); }
+  40%  { opacity: 1; filter: brightness(1.35); }
+  100% { opacity: 0; filter: brightness(1.6); }
+}
+
+/* ============================================================
+   Pieces & tray
+   ============================================================ */
+
+.tray {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  margin-top: 4px;
+  /* Blocks are inset 20px from the stage edges */
+  padding: 0 20px;
+  min-height: 110px;
+}
+
+.tray__slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* sizes to its piece; no fixed 4x4 footprint anymore */
+  flex-shrink: 0;
+}
+
+.piece {
+  position: relative;
+  display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.piece__cell {
+  position: absolute;
+}
+
+.piece__cell-inner {
+  position: absolute;
+  inset: 6%;
+  background: var(--accent);
+}
+
+.piece--faded { opacity: 0.16; pointer-events: none; }
+.piece--dragging .piece__cell-inner {
+  filter: brightness(1.04);
+}
+
+/* Floating drag preview — bbox CENTER at (left, top) */
+.drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.18));
+}
+
+/* ============================================================
+   Fairy — a single accent square with a soft halo. Lives above the
+   top-right corner of the board. Loops and throws sparks on affirmations.
+   ============================================================ */
+
+.fairy {
+  position: absolute;
+  /* anchored just above the top-right corner of the board */
+  top: -44px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  pointer-events: none;
+  z-index: 8;
+  transition: top 1.2s var(--ease-soft), right 1.2s var(--ease-soft), left 1.2s var(--ease-soft);
+}
+
+.fairy__halo {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 65%);
+  animation: fairyPulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.fairy__square {
+  position: absolute;
+  inset: 6px;
+  background: var(--accent);
+  animation: fairyDrift 6.5s ease-in-out infinite;
+}
+
+@keyframes fairyDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25%      { transform: translate(-2px, -4px) rotate(-1.5deg); }
+  50%      { transform: translate(1px, -1px) rotate(0.5deg); }
+  75%      { transform: translate(3px, -5px) rotate(1.2deg); }
+}
+
+@keyframes fairyPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Place reaction: a quick pop */
+.fairy--place .fairy__square { animation: fairyPop 0.55s var(--ease-out); }
+@keyframes fairyPop {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+
+/* Affirmation reaction: loops with magic flowing off.
+   We override the idle drift with a loop animation on the WHOLE fairy. */
+.fairy--clear,
+.fairy--combo { animation: fairyLoop 2.2s var(--ease-out); }
+.fairy--combo { animation-duration: 2.6s; }
+
+/* Two full loops. Radius ~26px so it stays close to the corner. */
+@keyframes fairyLoop {
+  0%   { transform: translate(0, 0)       rotate(0deg); }
+  12%  { transform: translate(-22px, -22px) rotate(-45deg); }
+  25%  { transform: translate(0, -44px)   rotate(-90deg); }
+  37%  { transform: translate(22px, -22px) rotate(-135deg); }
+  50%  { transform: translate(0, 0)       rotate(-180deg); }
+  62%  { transform: translate(-22px, -22px) rotate(-225deg); }
+  75%  { transform: translate(0, -44px)   rotate(-270deg); }
+  87%  { transform: translate(22px, -22px) rotate(-315deg); }
+  100% { transform: translate(0, 0)       rotate(-360deg); }
+}
+
+.fairy--clear .fairy__halo,
+.fairy--combo .fairy__halo { opacity: 1; }
+
+.fairy--watching { top: -32px; }
+.fairy--over {
+  top: 30%;
+  right: 50% !important;
+  left: auto;
+  transform: translateX(50%);
+}
+
+/* ---- Magic sparks ---- */
+.fairy__sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--accent);
+  opacity: 0;
+  animation: sparkFly 1.4s var(--ease-out) forwards;
+}
+/* 8 sparks fanning outward, each slightly different delay + angle */
+.spark--0 { --dx:  34px; --dy: -20px; animation-delay: 0.00s; }
+.spark--1 { --dx:  42px; --dy:   6px; animation-delay: 0.05s; background: var(--logo-mark); }
+.spark--2 { --dx:  22px; --dy:  38px; animation-delay: 0.10s; }
+.spark--3 { --dx: -18px; --dy:  38px; animation-delay: 0.18s; background: var(--logo-mark); }
+.spark--4 { --dx: -40px; --dy:  10px; animation-delay: 0.05s; }
+.spark--5 { --dx: -38px; --dy: -22px; animation-delay: 0.12s; background: var(--logo-mark); }
+.spark--6 { --dx: -10px; --dy: -42px; animation-delay: 0.20s; }
+.spark--7 { --dx:  16px; --dy: -38px; animation-delay: 0.00s; background: var(--logo-mark); }
+
+@keyframes sparkFly {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+
+/* ============================================================
+   Game over
+   ============================================================ */
+
+.gameover {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  animation: gameOverIn 1.2s var(--ease-soft) both;
+}
+@keyframes gameOverIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.gameover__inner {
+  text-align: center;
+  padding: 32px;
+  max-width: 420px;
+}
+
+.gameover__line {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 0 0 28px 0;
+}
+
+.gameover__stats {
+  font-size: 12px;
+  color: var(--ink);
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 32px;
+  font-weight: 700;
+}
+.gameover__sep { margin: 0 10px; }
+
+.gameover__btn {
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  color: var(--bg);
+  background: var(--ink);
+  padding: 14px 40px;
+  border: 2px solid var(--ink);
+  font-weight: 700;
+  transition:
+    background-color 0.35s var(--ease-soft),
+    color 0.35s var(--ease-soft),
+    transform 0.35s var(--ease-soft);
+}
+.gameover__btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+
+@media (max-width: 560px) {
+  .app__main { padding-top: 24px; }
+  .stage { gap: 14px; }
+  .mute-btn--corner { top: 16px; right: 18px; }
+  .logo__square { width: 22px; height: 22px; }
+  .logo__text { font-size: 22px; }
+  .score__value { font-size: 22px; }
+  .score { gap: 16px; }
+  .message-slot { height: 56px; }
+  .compliment__text { font-size: 14px; }
+  .fairy { width: 30px; height: 30px; top: -36px; right: -8px; }
+  .tray { min-height: 110px; padding: 0 16px; }
+}
